@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+    image: deepfake-detection
+    container_name: deepfake-app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/deepfakedb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_REDIS_HOST: redis
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: deepfakedb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - backend
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    depends_on:
+      - mysql
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+
+networks:
+  backend:

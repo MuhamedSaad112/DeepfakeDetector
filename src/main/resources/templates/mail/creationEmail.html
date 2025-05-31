@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="#{email.creation.title}">Welcome to Deepfake Detection</title>
+    <style>
+        /* Reset & Typography */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: #f3f4f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .email-container {
+            max-width: 600px;
+            width: 90%;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            transition: transform 0.5s ease;
+        }
+        .email-container:hover {
+            transform: scale(1.02);
+        }
+        /* Header with sliding gradient */
+        .email-header {
+            background: linear-gradient(135deg, #2b5876, #4e4376);
+            background-size: 200% 200%;
+            animation: slideGradient 4s ease infinite;
+            color: #fff;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        @keyframes slideGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        /* Content with slide-in effect */
+        .email-content {
+            padding: 30px 20px;
+            text-align: center;
+            animation: slideIn 0.8s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        h1 { font-size: 24px; color: #2c3e50; margin-bottom: 20px; }
+        p { font-size: 16px; color: #555555; margin-bottom: 20px; }
+        /* Button */
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #2b5876;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background: #4e4376;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .signature {
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #444;
+        }
+        .developer-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555555;
+        }
+        .developer-info a {
+            color: #2b5876;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        .developer-info a:hover {
+            text-decoration: underline;
+        }
+        .email-footer {
+            background: #f9f9f9;
+            color: #777777;
+            padding: 15px;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+        .email-footer:hover { background: #ececec; }
+        @media (max-width: 600px) {
+            .email-container { margin: 20px auto; }
+            .btn { width: 100%; padding: 15px; font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+<div class="email-container" th:classappend="${user.langKey=='ar'?'rtl':''}">
+    <!-- Header -->
+    <div class="email-header" th:text="#{email.creation.title}">
+        Welcome to Deepfake Detection
+    </div>
+    <!-- Content -->
+    <div class="email-content">
+        <h1 th:text="#{email.creation.greeting(${user.userName})}">Hello, [User]</h1>
+        <p th:text="#{email.creation.text1}">
+            Your account on Deepfake Detection has been successfully created.
+            Explore our powerful tools by logging in below:
+        </p>
+        <a th:href="${link}" class="btn" th:text="#{email.creation.link}">
+            Log in to Your Account
+        </a>
+        <p th:text="#{email.creation.text2}">
+            If you did not initiate this, please contact our support team immediately.
+        </p>
+        <p th:text="#{email.creation.text3}">Best regards,</p>
+        <p class="signature" th:text="#{email.signature}">
+            Deepfake Detection Team
+        </p>
+        <div class="developer-info">
+            <p>Developed by <strong>Engineer Mohamed Saad</strong></p>
+            <a href="https://github.com/MuhamedSaad112" target="_blank">Visit My GitHub</a>
+        </div>
+    </div>
+    <!-- Footer -->
+    <div class="email-footer">
+        &copy; 2025 Deepfake Detection. All rights reserved.
+    </div>
+</div>
+</body>
+</html>
