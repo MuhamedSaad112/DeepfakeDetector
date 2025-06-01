@@ -64,7 +64,7 @@ public class DeepfakeDetectionProfileController {
             @RequestPart("video")
             @NotNull(message = "Video file is required")
             MultipartFile video
-    ) throws IOException, InterruptedException, DeepfakeException {
+    ) throws IOException, DeepfakeException {
 
         log.info("Received video file: {}", video.getOriginalFilename());
         DetectionResultResponse result = videoService.detectVideo(video);

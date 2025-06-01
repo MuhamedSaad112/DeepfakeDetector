@@ -12,7 +12,6 @@ import java.util.UUID;
 public class DetectionResultDto {
     private UUID id;
     private String fileName;
-    private String fileUrl;
     private String predictionLabel;
     private double confidenceScore;
     private String fakeRatio;

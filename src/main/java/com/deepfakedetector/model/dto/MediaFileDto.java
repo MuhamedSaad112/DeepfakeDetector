@@ -16,16 +16,14 @@ import java.util.UUID;
 public class MediaFileDto {
     private UUID id;
     private String fileName;
-    private String filePath;
     private MediaFileType fileType;
-    private Long fileSize;
-    private Double duration;
+    private String fileSize;
+    private String duration;
     private String resolution;
     private String format;
     private Boolean isDeepfake;
     private ProcessingStatus processingStatus;
     private UploadSource uploadSource;
-
     private String comments;
     private LocalDateTime uploadedAt;
 

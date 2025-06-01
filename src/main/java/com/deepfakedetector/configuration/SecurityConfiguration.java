@@ -41,12 +41,13 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/activate", "/api/v1/auth/authenticate", "/api/v1/auth/account/reset-password/init", "/api/v1/auth/account/reset-password/check", "/api/v1/auth/account/reset-password/finish")
-                        .permitAll().requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .permitAll().requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/api/v1/auth/admin/**", "/api/v1//admin/**")
+                        .hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/**", "/api/v1/auth/**", "/api/v1/profile/**").hasRole("USER")
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/activate", "/api/v1/auth/authenticate").permitAll()
-                        .requestMatchers("/api/v1/auth/admin/**")
-                        .hasRole("ADMIN").anyRequest().authenticated())
+                        .anyRequest().authenticated())
                  .addFilterBefore(new JWTFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint())

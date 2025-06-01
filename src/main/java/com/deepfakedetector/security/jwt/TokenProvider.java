@@ -66,8 +66,13 @@ public class TokenProvider {
 
     public String createToken(Authentication authentication, boolean rememberMe) {
 
-        String authorities = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+        String authorities = authentication.getAuthorities().stream()
+                .map(grantedAuthority -> {
+                    String authority = grantedAuthority.getAuthority();
+                    return authority.startsWith("ROLE_") ? authority : "ROLE_" + authority;
+                })
                 .collect(Collectors.joining(","));
+
 
         long now = (new Date().getTime());
         Date validity;

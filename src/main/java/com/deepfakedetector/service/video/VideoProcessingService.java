@@ -25,8 +25,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -79,18 +77,14 @@ public class VideoProcessingService {
 
         try {
             DetectionResultResponse result = model.analyzeVideo(filePath).block();
+            result.setVideoId(savedMediaFile.getId());
 
-            // Ensure saveDetectionResult and updateMediaFileStatus execute after commit
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-                @Override
-                public void afterCommit() {
-                    CompletableFuture.runAsync(() -> saveDetectionResult(savedMediaFile, result));
-                    CompletableFuture.runAsync(() -> updateMediaFileStatus(savedMediaFile, result));
-                    if (cleanupEnabled) {
-                        scheduleFileCleanup(filePath);
-                    }
-                }
-            });
+            saveDetectionResult(savedMediaFile, result);
+            updateMediaFileStatus(savedMediaFile, result);
+
+            if (cleanupEnabled) {
+                scheduleFileCleanup(filePath);
+            }
 
             long totalTime = System.currentTimeMillis() - startTime;
             log.info("Video processing completed in {}ms for user: {}", totalTime, user.getUserName());
@@ -98,6 +92,7 @@ public class VideoProcessingService {
             return result;
 
         } catch (Exception e) {
+            log.error("Error during video processing: {}", e.getMessage(), e);
             savedMediaFile.setProcessingStatus(ProcessingStatus.FAILED);
             mediaFileRepository.save(savedMediaFile);
             cleanupFile(filePath);
@@ -116,7 +111,6 @@ public class VideoProcessingService {
         if (contentType == null || !contentType.startsWith("video/")) {
             throw new DeepfakeException(DetectionErrorCode.FILE_FORMAT_NOT_SUPPORTED);
         }
-
     }
 
     @Cacheable(value = "users", key = "#userName")
@@ -213,7 +207,38 @@ public class VideoProcessingService {
                 .build();
     }
 
-    public void saveDetectionResult(MediaFile mediaFile, DetectionResultResponse result) {
+    private Double convertFakeRatioToDecimal(Object fakeRatio) {
+        if (fakeRatio == null) return 0.0;
+
+        try {
+            double ratio;
+            if (fakeRatio instanceof String) {
+                String strRatio = (String) fakeRatio;
+                strRatio = strRatio.replace("%", "").trim();
+                ratio = Double.parseDouble(strRatio);
+            } else if (fakeRatio instanceof Number) {
+                ratio = ((Number) fakeRatio).doubleValue();
+            } else {
+                log.warn("Unknown fakeRatio type: {}, using 0.0", fakeRatio.getClass());
+                return 0.0;
+            }
+
+            if (ratio > 1.0) {
+                ratio = ratio / 100.0;
+            }
+
+            ratio = Math.max(0.0, Math.min(1.0, ratio));
+
+            log.debug("Converted fakeRatio from {} to {}", fakeRatio, ratio);
+            return ratio;
+
+        } catch (Exception e) {
+            log.error("Error converting fakeRatio {}: {}", fakeRatio, e.getMessage());
+            return 0.0;
+        }
+    }
+
+    private void saveDetectionResult(MediaFile mediaFile, DetectionResultResponse result) {
         try {
             DetectionResultEntity entity = DetectionResultEntity.builder()
                     .mediaFile(mediaFile)
@@ -223,25 +248,35 @@ public class VideoProcessingService {
                     .detectionMethod(DetectionMethod.DEEP_LEARNING)
                     .modelVersion("v2.0")
                     .predictedAt(LocalDateTime.now())
+                    .fakeRatio(Double.toString(convertFakeRatioToDecimal(result.getFakeRatio())))
                     .processingDetails(String.format(
                             "Processed using TensorFlow & OpenCV - Fake Ratio: %s, Confidence: %.4f",
                             result.getFakeRatio(), result.getScore()))
                     .build();
-            detectionResultRepository.save(entity);
-            log.debug("Detection result saved for media file: {}", mediaFile.getId());
+
+            DetectionResultEntity savedEntity = detectionResultRepository.save(entity);
+            log.info("Detection result saved successfully with ID: {} for media file: {}",
+                    savedEntity.getId(), mediaFile.getId());
+
         } catch (Exception e) {
-            log.error("Error saving detection result: {}", e.getMessage());
+            log.error("Error saving detection result for media file {}: {}",
+                    mediaFile.getId(), e.getMessage(), e);
+            throw new RuntimeException("Failed to save detection result", e);
         }
     }
 
-    public void updateMediaFileStatus(MediaFile mediaFile, DetectionResultResponse result) {
+    private void updateMediaFileStatus(MediaFile mediaFile, DetectionResultResponse result) {
         try {
             mediaFile.setIsDeepfake(result.isFake());
             mediaFile.setProcessingStatus(ProcessingStatus.COMPLETED);
-            mediaFileRepository.save(mediaFile);
-            log.debug("Media file status updated: {}", mediaFile.getId());
+            MediaFile updatedFile = mediaFileRepository.save(mediaFile);
+            log.info("Media file status updated to {} for file: {}",
+                    updatedFile.getProcessingStatus(), mediaFile.getId());
+
         } catch (Exception e) {
-            log.error("Error updating media file status: {}", e.getMessage());
+            log.error("Error updating media file status for file {}: {}",
+                    mediaFile.getId(), e.getMessage(), e);
+            throw new RuntimeException("Failed to update media file status", e);
         }
     }
 

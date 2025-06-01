@@ -65,6 +65,12 @@ public class DetectionResultEntity extends AbstractAuditingEntity implements Ser
     @Column(name = "is_verified")
     private Boolean isVerified = false;
 
+    @NotNull(message = "FakeRatio score is required")
+    @DecimalMin(value = "0.0", message = "FakeRatio score must be at least 0")
+    @DecimalMax(value = "1.0", message = "FakeRatio score must not exceed 1")
+    @Column(name = "fake_ratio", nullable = false)
+    private String fakeRatio;
+
     @DecimalMin(value = "0.0", message = "Detection accuracy must be at least 0")
     @DecimalMax(value = "1.0", message = "Detection accuracy must not exceed 1")
     @Column(name = "detection_accuracy")
