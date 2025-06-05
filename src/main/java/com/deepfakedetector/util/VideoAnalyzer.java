@@ -99,22 +99,32 @@ public class VideoAnalyzer implements AutoCloseable {
 
     private Net initializeDnnFaceDetector() throws IOException {
         try {
-            ClassPathResource prototxtResource = new ClassPathResource("models/deploy.prototxt");
-            ClassPathResource caffeModelResource = new ClassPathResource("models/res10_300x300_ssd_iter_140000.caffemodel");
+            Path protoPath = extractTempFile("models/deploy.prototxt");
+            Path modelPath = extractTempFile("models/res10_300x300_ssd_iter_140000.caffemodel");
 
-            if (prototxtResource.exists() && caffeModelResource.exists()) {
-                return opencv_dnn.readNetFromCaffe(
-                        prototxtResource.getFile().getAbsolutePath(),
-                        caffeModelResource.getFile().getAbsolutePath()
-                );
-            }
-
-            throw new IOException("Face detection model files not found in resources/models/");
+            return opencv_dnn.readNetFromCaffe(
+                    protoPath.toString(),
+                    modelPath.toString()
+            );
 
         } catch (Exception e) {
             throw new IOException("Failed to initialize DNN face detector: " + e.getMessage(), e);
         }
     }
+
+    private Path extractTempFile(String classpathLocation) throws IOException {
+        ClassPathResource resource = new ClassPathResource(classpathLocation);
+        if (!resource.exists()) {
+            throw new IOException("Resource not found: " + classpathLocation);
+        }
+
+        String filename = Paths.get(classpathLocation).getFileName().toString();
+        Path tempFile = Files.createTempFile("dnn-", "-" + filename);
+        Files.copy(resource.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING);
+        tempFile.toFile().deleteOnExit();
+        return tempFile;
+    }
+
 
     private void validateImageSize() {
         if (this.imageSize <= 0) {
