@@ -32,6 +32,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -73,28 +74,49 @@ public class VideoAnalyzer implements AutoCloseable {
     private final Net dnnNet;
 
     public VideoAnalyzer(
-            @Value("${model.video.directory:model}") String modelDir,
+            @Value("${model.video.directory:model-video}") String modelDir,
             @Value("${model.video.filename:saved_model.pb}") String modelFile,
             @Value("${model.video.size:128}") int imageSize,
             @Value("${model.video.threshold:0.4}") float threshold
     ) throws IOException {
-        this.modelDir = modelDir;
-        this.modelFile = modelFile;
-        this.imageSize = imageSize;
-        this.threshold = threshold;
-        this.dnnNet = initializeDnnFaceDetector();
-        validateImageSize();
-        this.converter = new OpenCVFrameConverter.ToMat();
-        Path modelPath = extractModelFromResources();
-        this.model = SavedModelBundle.load(modelPath.toString(), "serve");
-        this.session = model.session();
-        this.executorService = createExecutorService();
-        this.resultCache = Caffeine.newBuilder()
-                .maximumSize(100)
-                .expireAfterWrite(Duration.ofMinutes(30))
-                .build();
+        log.info("Starting VideoAnalyzer initialization...");
+        log.info("Model directory: {}, Model file: {}", modelDir, modelFile);
+        log.info("Image size: {}, Threshold: {}", imageSize, threshold);
 
-        log.info("VideoAnalyzer initialized - imageSize: {}, threshold: {}", imageSize, threshold);
+        try {
+            this.modelDir = modelDir;
+            this.modelFile = modelFile;
+            this.imageSize = imageSize;
+            this.threshold = threshold;
+
+            log.info("Initializing DNN face detector...");
+            this.dnnNet = initializeDnnFaceDetector();
+            log.info("DNN face detector initialized successfully");
+
+            validateImageSize();
+            this.converter = new OpenCVFrameConverter.ToMat();
+
+            log.info("Extracting model from resources...");
+            Path modelPath = extractModelFromResources();
+            log.info("Model extracted to: {}", modelPath);
+
+            log.info("Loading TensorFlow model...");
+            this.model = SavedModelBundle.load(modelPath.toString(), "serve");
+            this.session = model.session();
+            log.info("TensorFlow model loaded successfully");
+
+            this.executorService = createExecutorService();
+            this.resultCache = Caffeine.newBuilder()
+                    .maximumSize(100)
+                    .expireAfterWrite(Duration.ofMinutes(30))
+                    .build();
+
+            log.info("VideoAnalyzer initialized successfully - imageSize: {}, threshold: {}", imageSize, threshold);
+
+        } catch (Exception e) {
+            log.error("VideoAnalyzer initialization failed: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     private Net initializeDnnFaceDetector() throws IOException {
@@ -102,16 +124,40 @@ public class VideoAnalyzer implements AutoCloseable {
             ClassPathResource prototxtResource = new ClassPathResource("models/deploy.prototxt");
             ClassPathResource caffeModelResource = new ClassPathResource("models/res10_300x300_ssd_iter_140000.caffemodel");
 
-            if (prototxtResource.exists() && caffeModelResource.exists()) {
-                return opencv_dnn.readNetFromCaffe(
-                        prototxtResource.getFile().getAbsolutePath(),
-                        caffeModelResource.getFile().getAbsolutePath()
-                );
+            if (!prototxtResource.exists() || !caffeModelResource.exists()) {
+                throw new IOException("Face detection model files not found in resources/models/");
             }
 
-            throw new IOException("Face detection model files not found in resources/models/");
+            // Extract files to temporary location for JAR compatibility
+            Path tempDir = Files.createTempDirectory("deepfake-models");
+            tempDir.toFile().deleteOnExit();
+
+            Path prototxtTemp = tempDir.resolve("deploy.prototxt");
+            Path caffeModelTemp = tempDir.resolve("res10_300x300_ssd_iter_140000.caffemodel");
+
+            // Copy files from JAR to temp directory
+            try (InputStream prototxtStream = prototxtResource.getInputStream();
+                 InputStream caffeModelStream = caffeModelResource.getInputStream()) {
+
+                Files.copy(prototxtStream, prototxtTemp, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(caffeModelStream, caffeModelTemp, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Make sure files are readable
+            prototxtTemp.toFile().deleteOnExit();
+            caffeModelTemp.toFile().deleteOnExit();
+
+            log.info("Extracted model files to: {}", tempDir);
+            log.info("Prototxt: {} (exists: {})", prototxtTemp, Files.exists(prototxtTemp));
+            log.info("Caffe model: {} (exists: {})", caffeModelTemp, Files.exists(caffeModelTemp));
+
+            return opencv_dnn.readNetFromCaffe(
+                    prototxtTemp.toString(),
+                    caffeModelTemp.toString()
+            );
 
         } catch (Exception e) {
+            log.error("Failed to initialize DNN face detector: {}", e.getMessage(), e);
             throw new IOException("Failed to initialize DNN face detector: " + e.getMessage(), e);
         }
     }
@@ -523,26 +569,65 @@ public class VideoAnalyzer implements AutoCloseable {
     }
 
     private Path extractModelFromResources() throws IOException {
-        ClassPathResource resource = new ClassPathResource(modelDir);
-        if (!resource.exists()) {
-            throw new IOException("Resource folder " + modelDir + " not found in classpath.");
-        }
-        Path sourceDir = resource.getFile().toPath();
-        Path tempDir = Files.createTempDirectory("model-");
-
-        Files.walk(sourceDir).forEach(source -> {
-            try {
-                Path destination = tempDir.resolve(sourceDir.relativize(source).toString());
-                if (Files.isDirectory(source)) {
-                    Files.createDirectories(destination);
-                } else {
-                    Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Error copying " + source + " to " + tempDir, e);
+        try {
+            ClassPathResource resource = new ClassPathResource(modelDir);
+            if (!resource.exists()) {
+                throw new IOException("Resource folder " + modelDir + " not found in classpath.");
             }
-        });
-        return tempDir;
+
+            Path tempDir = Files.createTempDirectory("model-");
+            tempDir.toFile().deleteOnExit();
+
+            // If running from JAR, we need to extract differently
+            if (resource.getURI().toString().startsWith("jar:")) {
+                log.info("Extracting model from JAR...");
+                extractFromJar(resource, tempDir);
+            } else {
+                // Running from filesystem (development)
+                Path sourceDir = resource.getFile().toPath();
+                Files.walk(sourceDir).forEach(source -> {
+                    try {
+                        Path destination = tempDir.resolve(sourceDir.relativize(source).toString());
+                        if (Files.isDirectory(source)) {
+                            Files.createDirectories(destination);
+                        } else {
+                            Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException("Error copying " + source + " to " + tempDir, e);
+                    }
+                });
+            }
+
+            log.info("Model extracted to: {}", tempDir);
+            return tempDir;
+
+        } catch (Exception e) {
+            log.error("Failed to extract model from resources: {}", e.getMessage(), e);
+            throw new IOException("Failed to extract model: " + e.getMessage(), e);
+        }
+    }
+
+    private void extractFromJar(ClassPathResource resource, Path tempDir) throws IOException {
+        // For JAR files, we need to extract the specific files we know about
+        String[] modelFiles = {"saved_model.pb", "variables/variables.data-00000-of-00001", "variables/variables.index"};
+
+        for (String fileName : modelFiles) {
+            ClassPathResource fileResource = new ClassPathResource(modelDir + "/" + fileName);
+            if (fileResource.exists()) {
+                Path targetPath = tempDir.resolve(fileName);
+
+                // Create parent directories if needed
+                Files.createDirectories(targetPath.getParent());
+
+                try (InputStream inputStream = fileResource.getInputStream()) {
+                    Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    targetPath.toFile().deleteOnExit();
+                }
+
+                log.info("Extracted: {}", fileName);
+            }
+        }
     }
 
     @PreDestroy
