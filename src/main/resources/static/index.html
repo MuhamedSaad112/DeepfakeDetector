@@ -22,7 +22,11 @@
         body{
             font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
             background:var(--primary-gradient);
-            min-height:100vh;display:flex;align-items:center;justify-content:center;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             padding:20px;position:relative;overflow-x:hidden
         }
         .animated-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background:var(--primary-gradient)}
@@ -42,7 +46,10 @@
         .main-container{
             background:var(--glass-bg);backdrop-filter:blur(30px);border:1px solid var(--glass-border);
             border-radius:32px;padding:50px 40px;max-width:600px;width:100%;text-align:center;
-            box-shadow:var(--shadow-hard);position:relative;transition:all .4s cubic-bezier(.4,0,.2,1)
+            box-shadow: var(--shadow-hard);
+            position: relative;
+            transition: all .4s cubic-bezier(.4, 0, .2, 1);
+            margin-bottom: 30px
         }
         .main-container::before{
             content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:var(--primary-gradient);
@@ -179,6 +186,140 @@
             background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);animation:shimmer 2s infinite
         }
         @keyframes shimmer{0%{left:-100%}100%{left:100%}}
+
+        /* Developer Info Styles */
+        .developer-info {
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden
+        }
+
+        .developer-info::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .05), transparent);
+            transition: left .6s;
+        }
+
+        .developer-info:hover::before {
+            left: 100%;
+        }
+
+        .developer-info h3 {
+            color: rgba(255, 255, 255, .9);
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .developer-info p {
+            color: rgba(255, 255, 255, .9);
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .developer-info strong {
+            background: var(--secondary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            text-decoration: none;
+            background: var(--secondary-gradient);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: .95rem;
+            transition: all .3s cubic-bezier(.4, 0, .2, 1);
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 8px 20px rgba(79, 172, 254, .3);
+            min-width: 140px;
+        }
+
+        .contact-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(79, 172, 254, .4);
+        }
+
+        .contact-link.github {
+            background: linear-gradient(135deg, #333 0%, #666 100%);
+            box-shadow: 0 8px 20px rgba(51, 51, 51, .3);
+        }
+
+        .contact-link.github:hover {
+            box-shadow: 0 12px 30px rgba(51, 51, 51, .4);
+        }
+
+        .contact-link.linkedin {
+            background: linear-gradient(135deg, #0077b5 0%, #00a0dc 100%);
+            box-shadow: 0 8px 20px rgba(0, 119, 181, .3);
+        }
+
+        .contact-link.linkedin:hover {
+            box-shadow: 0 12px 30px rgba(0, 119, 181, .4);
+        }
+
+        .contact-link.email {
+            background: linear-gradient(135deg, #ea4335 0%, #fbbc05 50%, #34a853 100%);
+            box-shadow: 0 8px 20px rgba(234, 67, 53, .3);
+        }
+
+        .contact-link.email:hover {
+            box-shadow: 0 12px 30px rgba(234, 67, 53, .4);
+        }
+
+        .contact-icon {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* Footer Styles */
+        .email-footer {
+            background: rgba(255, 255, 255, .05);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            color: rgba(255, 255, 255, .7);
+            font-size: .9rem;
+            font-weight: 400;
+            margin-top: 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+
         @media (max-width:768px){
             .main-container{padding:30px 25px;margin:10px}
             h1{font-size:2.5rem}
@@ -188,11 +329,60 @@
             .btn{width:100%;max-width:300px}
             .progress-ring{width:160px;height:160px}
             .progress-percentage{font-size:2rem}
+
+            .developer-info {
+                padding: 25px;
+                margin: 20px 10px 0
+            }
+
+            .contact-links {
+                gap: 12px
+            }
+
+            .contact-link {
+                padding: 10px 16px;
+                font-size: .9rem;
+                min-width: 120px;
+            }
+
+            .contact-icon {
+                font-size: 1.1rem
+            }
+
+            .email-footer {
+                margin: 15px 10px 0;
+                padding: 15px
+            }
         }
         @media (max-width:480px){
             .main-container{padding:25px 20px}
             h1{font-size:2rem}
             .logo{font-size:3rem}
+
+            .developer-info p {
+                font-size: 1rem
+            }
+
+            .developer-info h3 {
+                font-size: 1.2rem
+            }
+
+            .contact-links {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .contact-link {
+                padding: 10px 20px;
+                font-size: .9rem;
+                min-width: 200px;
+                justify-content: center;
+            }
+
+            .email-footer {
+                font-size: .8rem
+            }
         }
     </style>
 </head>
@@ -269,7 +459,33 @@
             </div>
         </div>
     </div>
+
+    <!-- Developer Info Section -->
+    <div class="developer-info">
+        <h3>👨‍💻 Developer Information</h3>
+        <p>Developed by <strong>Engineer Mohamed Saad</strong></p>
+        <div class="contact-links">
+            <a href="https://github.com/MuhamedSaad112" target="_blank" class="contact-link github">
+                <span class="contact-icon">🐙</span>
+                <span>GitHub</span>
+            </a>
+            <a href="https://www.linkedin.com/in/muhamedsaad112/" target="_blank" class="contact-link linkedin">
+                <span class="contact-icon">💼</span>
+                <span>LinkedIn</span>
+            </a>
+            <a href="mailto:m.saad1122003@gmail.com" class="contact-link email">
+                <span class="contact-icon">📧</span>
+                <span>Email</span>
+            </a>
+        </div>
+    </div>
 </div>
+
+<!-- Footer -->
+<div class="email-footer">
+    &copy; 2025 Deepfake Detection. All rights reserved.
+</div>
+
 <script>
     const uploadArea=document.querySelector('.upload-area');
     const fileInput=document.getElementById('videoInput');

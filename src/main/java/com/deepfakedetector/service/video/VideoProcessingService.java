@@ -117,13 +117,13 @@ public class VideoProcessingService {
     public User getCurrentUserCached(String userName) {
         return userCache.computeIfAbsent(userName, key ->
                 repository.findOneByUserName(key)
-                        .orElseThrow(() -> new IllegalArgumentException("User not found: " + key))
+                        .orElseThrow(() -> new DeepfakeSilentException(DetectionErrorCode.CURRENT_USER_NOT_FOUND))
         );
     }
 
     private User getCurrentUser() {
         String userName = SecurityUtils.getCurrentUserUserName()
-                .orElseThrow(() -> new IllegalArgumentException("No authenticated user found"));
+                .orElseThrow(() -> new DeepfakeSilentException(DetectionErrorCode.CURRENT_USER_NOT_FOUND));
         return getCurrentUserCached(userName);
     }
 
