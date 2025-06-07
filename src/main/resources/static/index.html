@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Deepfake Detector</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --primary-gradient:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#f093fb 100%);
+            --secondary-gradient:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);
+            --success-gradient:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);
+            --danger-gradient:linear-gradient(135deg,#fc466b 0%,#3f5efb 100%);
+            --glass-bg:rgba(255,255,255,.08);
+            --glass-border:rgba(255,255,255,.2);
+            --text-primary:#1a1a2e;
+            --text-secondary:#6b7280;
+            --shadow-soft:0 25px 50px -12px rgba(0,0,0,.25);
+            --shadow-hard:0 35px 60px -10px rgba(0,0,0,.4)
+        }
+        body{
+            font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+            background:var(--primary-gradient);
+            min-height:100vh;display:flex;align-items:center;justify-content:center;
+            padding:20px;position:relative;overflow-x:hidden
+        }
+        .animated-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background:var(--primary-gradient)}
+        .floating-shapes{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}
+        .shape{position:absolute;background:rgba(255,255,255,.05);border-radius:50%;animation:float 20s infinite linear;backdrop-filter:blur(2px)}
+        .shape:nth-child(1){width:80px;height:80px;top:20%;left:10%;animation-delay:-2s}
+        .shape:nth-child(2){width:120px;height:120px;top:60%;left:70%;animation-delay:-8s}
+        .shape:nth-child(3){width:60px;height:60px;top:80%;left:20%;animation-delay:-15s}
+        .shape:nth-child(4){width:100px;height:100px;top:30%;left:80%;animation-delay:-5s}
+        .shape:nth-child(5){width:140px;height:140px;top:10%;left:60%;animation-delay:-12s}
+        @keyframes float{
+            0%,100%{transform:translateY(0) rotate(0);opacity:.7}
+            25%{transform:translateY(-20px) rotate(90deg);opacity:1}
+            50%{transform:translateY(-40px) rotate(180deg);opacity:.8}
+            75%{transform:translateY(-20px) rotate(270deg);opacity:.6}
+        }
+        .main-container{
+            background:var(--glass-bg);backdrop-filter:blur(30px);border:1px solid var(--glass-border);
+            border-radius:32px;padding:50px 40px;max-width:600px;width:100%;text-align:center;
+            box-shadow:var(--shadow-hard);position:relative;transition:all .4s cubic-bezier(.4,0,.2,1)
+        }
+        .main-container::before{
+            content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:var(--primary-gradient);
+            border-radius:34px;z-index:-1;opacity:.1
+        }
+        .main-container:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 50px 100px -20px rgba(0,0,0,.4)}
+        .header-section{margin-bottom:50px}
+        .logo{
+            font-size:4rem;margin-bottom:20px;display:block;background:var(--secondary-gradient);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            filter:drop-shadow(0 4px 8px rgba(0,0,0,.1));animation:pulse 2s infinite
+        }
+        @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+        h1{
+            font-size:3.2rem;font-weight:800;background:linear-gradient(135deg,#fff 0%,#f8f9ff 100%);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            margin-bottom:16px;letter-spacing:-1px;line-height:1.1
+        }
+        .subtitle{color:rgba(255,255,255,.8);font-size:1.2rem;font-weight:400;line-height:1.6;margin-bottom:20px}
+        .features-row{display:flex;justify-content:center;gap:30px;margin-bottom:40px;flex-wrap:wrap}
+        .feature-item{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.9);font-size:.9rem;font-weight:500}
+        .feature-icon{width:20px;height:20px;background:var(--success-gradient);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px}
+        .upload-section{margin:40px 0}
+        .upload-container{position:relative;margin-bottom:30px}
+        .upload-area{
+            border:2px dashed rgba(255,255,255,.3);border-radius:24px;padding:50px 30px;
+            background:rgba(255,255,255,.05);transition:all .4s cubic-bezier(.4,0,.2,1);
+            cursor:pointer;position:relative;overflow:hidden
+        }
+        .upload-area::before{
+            content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);transition:left .6s
+        }
+        .upload-area:hover{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.1);transform:scale(1.02)}
+        .upload-area:hover::before{left:100%}
+        .upload-area.dragover{
+            border-color:#4facfe;background:rgba(79,172,254,.1);transform:scale(1.05);
+            box-shadow:0 20px 40px rgba(79,172,254,.2)
+        }
+        .upload-content{position:relative;z-index:2}
+        .upload-icon{
+            font-size:4rem;margin-bottom:20px;display:block;background:var(--secondary-gradient);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:bounce 2s infinite
+        }
+        @keyframes bounce{
+            0%,20%,50%,80%,100%{transform:translateY(0)}
+            40%{transform:translateY(-10px)}
+            60%{transform:translateY(-5px)}
+        }
+        .upload-text{color:rgba(255,255,255,.9);font-size:1.3rem;font-weight:600;margin-bottom:8px}
+        .upload-hint{color:rgba(255,255,255,.6);font-size:1rem;margin-bottom:15px}
+        .file-types{display:flex;justify-content:center;gap:15px;margin-top:20px}
+        .file-type{
+            background:rgba(255,255,255,.1);padding:8px 16px;border-radius:20px;font-size:.85rem;
+            color:rgba(255,255,255,.8);backdrop-filter:blur(10px)
+        }
+        input[type=file]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer}
+        .button-group{display:flex;gap:20px;justify-content:center;flex-wrap:wrap}
+        .btn{
+            padding:18px 40px;font-size:1.1rem;font-weight:600;border:none;border-radius:50px;cursor:pointer;
+            transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;
+            text-transform:uppercase;letter-spacing:1px;min-width:180px
+        }
+        .btn-primary{background:var(--secondary-gradient);color:#fff;box-shadow:0 15px 35px rgba(79,172,254,.3)}
+        .btn-primary:hover{transform:translateY(-3px);box-shadow:0 25px 50px rgba(79,172,254,.4)}
+        .btn-secondary{
+            background:rgba(255,255,255,.1);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2);
+            backdrop-filter:blur(10px)
+        }
+        .btn-secondary:hover{background:rgba(255,255,255,.2);transform:translateY(-2px)}
+        .btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
+        .btn::before{
+            content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transition:left .6s
+        }
+        .btn:hover::before{left:100%}
+        .loader-container{margin:60px 0;display:none}
+        .advanced-loader{position:relative;width:100px;height:100px;margin:0 auto 30px}
+        .loader-ring{position:absolute;width:100%;height:100%;border-radius:50%;border:3px solid transparent}
+        .loader-ring:nth-child(1){border-top:3px solid #4facfe;animation:spin 1.5s linear infinite}
+        .loader-ring:nth-child(2){border-right:3px solid #00f2fe;animation:spin 2s linear infinite reverse;animation-delay:.1s}
+        .loader-ring:nth-child(3){border-bottom:3px solid #667eea;animation:spin 1s linear infinite;animation-delay:.2s}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .loader-text{color:rgba(255,255,255,.8);font-size:1.1rem;font-weight:500;animation:pulse-text 1.5s infinite}
+        @keyframes pulse-text{0%,100%{opacity:.6}50%{opacity:1}}
+        .results-section{margin:60px 0;display:none;animation:slideInUp .8s cubic-bezier(.4,0,.2,1)}
+        @keyframes slideInUp{from{opacity:0;transform:translateY(50px)}to{opacity:1;transform:translateY(0)}}
+        .result-card{
+            background:rgba(255,255,255,.1);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);
+            border-radius:24px;padding:40px;position:relative;overflow:hidden
+        }
+        .result-card::before{
+            content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+            background:conic-gradient(transparent,rgba(255,255,255,.1),transparent);animation:rotate-bg 4s linear infinite
+        }
+        @keyframes rotate-bg{to{transform:rotate(360deg)}}
+        .result-content{position:relative;z-index:2}
+        .progress-container{margin:30px 0}
+        .progress-ring{position:relative;width:200px;height:200px;margin:0 auto 30px}
+        .progress-ring svg{transform:rotate(-90deg);filter:drop-shadow(0 15px 35px rgba(0,0,0,.2))}
+        .progress-ring circle{fill:none;stroke-width:12;r:80;cx:100;cy:100}
+        .progress-ring__bg{stroke:rgba(255,255,255,.1)}
+        .progress-ring__value{
+            stroke-dasharray:502;stroke-dashoffset:502;transition:stroke-dashoffset 2s cubic-bezier(.4,0,.2,1);
+            stroke-linecap:round
+        }
+        .progress-ring__value.real{stroke:url(#realGradient)}
+        .progress-ring__value.fake{stroke:url(#fakeGradient)}
+        .progress-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+        .progress-percentage{font-size:2.5rem;font-weight:800;color:#fff;margin-bottom:5px}
+        .progress-label{font-size:1rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:2px}
+        .result-status{margin:30px 0}
+        .status-badge{
+            display:inline-block;padding:15px 40px;border-radius:50px;font-size:1.4rem;font-weight:700;
+            text-transform:uppercase;letter-spacing:2px;position:relative;overflow:hidden
+        }
+        .status-badge.real{
+            background:var(--success-gradient);color:#fff;box-shadow:0 15px 40px rgba(17,153,142,.4)
+        }
+        .status-badge.fake{
+            background:var(--danger-gradient);color:#fff;box-shadow:0 15px 40px rgba(252,70,107,.4)
+        }
+        .confidence-section{margin-top:40px}
+        .confidence-label{color:rgba(255,255,255,.8);font-size:1rem;margin-bottom:15px}
+        .confidence-bar-container{
+            background:rgba(255,255,255,.1);border-radius:20px;height:12px;overflow:hidden;position:relative
+        }
+        .confidence-bar{
+            height:100%;border-radius:20px;background:var(--secondary-gradient);transition:width 2s cubic-bezier(.4,0,.2,1);
+            position:relative;overflow:hidden
+        }
+        .confidence-bar::before{
+            content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);animation:shimmer 2s infinite
+        }
+        @keyframes shimmer{0%{left:-100%}100%{left:100%}}
+        @media (max-width:768px){
+            .main-container{padding:30px 25px;margin:10px}
+            h1{font-size:2.5rem}
+            .features-row{gap:15px}
+            .upload-area{padding:40px 20px}
+            .button-group{flex-direction:column;align-items:center}
+            .btn{width:100%;max-width:300px}
+            .progress-ring{width:160px;height:160px}
+            .progress-percentage{font-size:2rem}
+        }
+        @media (max-width:480px){
+            .main-container{padding:25px 20px}
+            h1{font-size:2rem}
+            .logo{font-size:3rem}
+        }
+    </style>
+</head>
+<body>
+<div class="animated-bg"></div>
+<div class="floating-shapes">
+    <div class="shape"></div><div class="shape"></div><div class="shape"></div><div class="shape"></div><div class="shape"></div>
+</div>
+<div class="main-container">
+    <div class="header-section">
+        <div class="logo">🤖</div>
+        <h1>AI Deepfake Detector</h1>
+        <p class="subtitle">Advanced AI technology to detect manipulated videos with high precision</p>
+        <div class="features-row">
+            <div class="feature-item"><div class="feature-icon">✓</div><span>99% Accuracy</span></div>
+            <div class="feature-item"><div class="feature-icon">⚡</div><span>Fast Analysis</span></div>
+            <div class="feature-item"><div class="feature-icon">🔒</div><span>Secure &amp; Private</span></div>
+        </div>
+    </div>
+    <div class="upload-section">
+        <div class="upload-container">
+            <div class="upload-area" onclick="document.getElementById('videoInput').click()">
+                <div class="upload-content">
+                    <div class="upload-icon">🎬</div>
+                    <div class="upload-text">Drop your video here</div>
+                    <div class="upload-hint">or click to browse files</div>
+                    <div class="file-types">
+                        <span class="file-type">MP4</span><span class="file-type">AVI</span>
+                        <span class="file-type">MOV</span><span class="file-type">WMV</span>
+                    </div>
+                </div>
+                <input type="file" id="videoInput" accept="video/*">
+            </div>
+        </div>
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="analyze()" id="analyzeBtn"><span>🔍 Analyze Video</span></button>
+            <button class="btn btn-secondary" onclick="resetUpload()"><span>🔄 Reset</span></button>
+        </div>
+    </div>
+    <div id="loaderContainer" class="loader-container">
+        <div class="advanced-loader">
+            <div class="loader-ring"></div><div class="loader-ring"></div><div class="loader-ring"></div>
+        </div>
+        <div class="loader-text">Analyzing video with AI...</div>
+    </div>
+    <div id="resultsSection" class="results-section">
+        <div class="result-card">
+            <div class="result-content">
+                <div class="progress-container">
+                    <div class="progress-ring">
+                        <svg width="200" height="200">
+                            <defs>
+                                <linearGradient id="realGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#11998e"/><stop offset="100%" style="stop-color:#38ef7d"/>
+                                </linearGradient>
+                                <linearGradient id="fakeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#fc466b"/><stop offset="100%" style="stop-color:#3f5efb"/>
+                                </linearGradient>
+                            </defs>
+                            <circle class="progress-ring__bg"></circle>
+                            <circle class="progress-ring__value"></circle>
+                        </svg>
+                        <div class="progress-text">
+                            <div id="progressPercentage" class="progress-percentage">0%</div>
+                            <div class="progress-label">Confidence</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="result-status"><div id="statusBadge" class="status-badge">Analyzing...</div></div>
+                <div class="confidence-section">
+                    <div class="confidence-label">Detection Confidence Level</div>
+                    <div class="confidence-bar-container"><div id="confidenceBar" class="confidence-bar" style="width:0%"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const uploadArea=document.querySelector('.upload-area');
+    const fileInput=document.getElementById('videoInput');
+    const analyzeBtn=document.getElementById('analyzeBtn');
+    const loaderContainer=document.getElementById('loaderContainer');
+    const resultsSection=document.getElementById('resultsSection');
+    let dragCounter=0;
+    uploadArea.addEventListener('dragenter',e=>{e.preventDefault();dragCounter++;uploadArea.classList.add('dragover')});
+    uploadArea.addEventListener('dragleave',e=>{e.preventDefault();dragCounter--;if(dragCounter===0)uploadArea.classList.remove('dragover')});
+    uploadArea.addEventListener('dragover',e=>e.preventDefault());
+    uploadArea.addEventListener('drop',e=>{
+        e.preventDefault();dragCounter=0;uploadArea.classList.remove('dragover');
+        const files=e.dataTransfer.files;
+        if(files.length>0&&files[0].type.startsWith('video/')){
+            fileInput.files=files;updateUploadState(files[0])
+        }else{showNotification('Please select a valid video file','error')}
+    });
+    fileInput.addEventListener('change',e=>{if(e.target.files.length>0)updateUploadState(e.target.files[0])});
+    function updateUploadState(file){
+        document.querySelector('.upload-icon').textContent='✅';
+        document.querySelector('.upload-text').textContent=file.name;
+        document.querySelector('.upload-hint').textContent=`File size: ${(file.size/(1024*1024)).toFixed(2)} MB`;
+        uploadArea.style.borderColor='rgba(56,239,125,.6)';
+        uploadArea.style.background='rgba(56,239,125,.1)'
+    }
+    function resetUpload(){
+        document.querySelector('.upload-icon').textContent='🎬';
+        document.querySelector('.upload-text').textContent='Drop your video here';
+        document.querySelector('.upload-hint').textContent='or click to browse files';
+        uploadArea.style.borderColor='rgba(255,255,255,.3)';
+        uploadArea.style.background='rgba(255,255,255,.05)';
+        fileInput.value='';resultsSection.style.display='none';loaderContainer.style.display='none'
+    }
+    function setProgress(percentage,isReal){
+        const circle=document.querySelector('.progress-ring__value');
+        const percentageText=document.getElementById('progressPercentage');
+        const statusBadge=document.getElementById('statusBadge');
+        const confidenceBar=document.getElementById('confidenceBar');
+        const radius=80;const circumference=2*Math.PI*radius;
+        circle.style.strokeDashoffset=circumference-(percentage/100)*circumference;
+        circle.classList.toggle('real',isReal);circle.classList.toggle('fake',!isReal);
+        percentageText.textContent=`${percentage}%`;
+        statusBadge.classList.toggle('real',isReal);statusBadge.classList.toggle('fake',!isReal);
+        statusBadge.textContent=isReal?'✅ Authentic':'⚠️ Deepfake';
+        confidenceBar.style.width=`${percentage}%`
+    }
+    function showNotification(msg){alert(msg)}
+    async function analyze(){
+        if(!fileInput.files[0]){showNotification('Please select a video file first');return}
+        resultsSection.style.display='none';loaderContainer.style.display='block';
+        analyzeBtn.disabled=true;analyzeBtn.innerHTML='<span>🔄 Processing...</span>';
+        const formData=new FormData();formData.append('video',fileInput.files[0]);
+        try{
+            await new Promise(r=>setTimeout(r,3000));
+            const res=await fetch('/api/v1/public/videos/detect',{method:'POST',body:formData});
+            const json=await res.json();
+            const isReal=json.data.result==='REAL';
+            let ratio=json.data.fakeRatio;
+            if(typeof ratio==='string'&&ratio.includes('%'))ratio=parseFloat(ratio.replace('%',''))/100;
+            ratio=parseFloat(ratio);ratio=Math.min(Math.max(ratio,0),1);
+            const percent=Math.round(ratio*100);
+            loaderContainer.style.display='none';resultsSection.style.display='block';
+            setProgress(isReal?100-percent:percent,isReal)
+        }catch(e){
+            loaderContainer.style.display='none';
+            showNotification('Error analyzing the video, please try again')
+        }finally{
+            analyzeBtn.disabled=false;analyzeBtn.innerHTML='<span>🔍 Analyze Video</span>'
+        }
+    }
+</script>
+</body>
+</html>

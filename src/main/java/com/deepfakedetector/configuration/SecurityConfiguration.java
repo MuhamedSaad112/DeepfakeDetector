@@ -33,7 +33,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableJpaAuditing
 public class SecurityConfiguration {
 
-   private final TokenProvider tokenProvider;
+    private final TokenProvider tokenProvider;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -43,12 +43,13 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/activate", "/api/v1/auth/authenticate", "/api/v1/auth/account/reset-password/init", "/api/v1/auth/account/reset-password/check", "/api/v1/auth/account/reset-password/finish")
                         .permitAll().requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/static/**", "/resources/**", "/webjars/**", "/favicon.ico").permitAll()
                         .requestMatchers("/api/v1/auth/admin/**", "/api/v1//admin/**")
                         .hasRole("ADMIN")
                         .requestMatchers("/api/v1/users/**", "/api/v1/auth/**", "/api/v1/profile/**").hasRole("USER")
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/activate", "/api/v1/auth/authenticate").permitAll()
                         .anyRequest().authenticated())
-                 .addFilterBefore(new JWTFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JWTFilter(tokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
                         .accessDeniedHandler(new AdvancedAccessDeniedHandler())

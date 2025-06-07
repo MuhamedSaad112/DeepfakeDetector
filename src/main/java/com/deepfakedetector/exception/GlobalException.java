@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MultipartException;
 
 import java.time.LocalDateTime;
@@ -107,6 +108,19 @@ public class GlobalException {
                 .body(GenericApiResponse.error(payload, HttpStatus.BAD_REQUEST));
     }
 
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<GenericApiResponse<Object>> handleTimeout(AsyncRequestTimeoutException ex) {
+        DetectionErrorPayload payload = DetectionErrorPayload.builder()
+                .messageEn("Request timed out. The server took too long to respond.")
+                .messageAr("انتهى وقت الانتظار. استغرق الخادم وقتًا طويلاً للرد.")
+                .errorCode("REQUEST_TIMEOUT")
+                .timestamp(LocalDateTime.now())
+                .details("AsyncRequestTimeoutException: " + ex.getMessage())
+                .build();
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(GenericApiResponse.error(payload, HttpStatus.GATEWAY_TIMEOUT));
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<GenericApiResponse<Object>> handleAllUncaught(Exception ex, WebRequest request) {
